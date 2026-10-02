@@ -1,0 +1,107 @@
+# TokenSaver 🔋
+
+> Python package & CLI để **tối ưu token** khi dùng AI trong dự án thực tế.  
+> Hỗ trợ: Anthropic Claude · OpenAI GPT · Google Gemini
+
+---
+
+## Cài đặt
+
+```bash
+# Cài đặt cơ bản (simple compression + HTML cleaner + token counter)
+pip install -e .
+
+# Cài thêm LLMLingua (nén prompt mạnh hơn, cần ~500MB model)
+pip install -e ".[llmlingua]"
+```
+
+## CLI Quick Start
+
+```bash
+# Đếm token trong file
+tokensaver count prompt.txt
+tokensaver count prompt.txt --provider openai --model gpt-4o-mini
+
+# Nén prompt
+tokensaver compress long_prompt.txt
+tokensaver compress long_prompt.txt --mode llmlingua --ratio 0.4
+
+# Làm sạch HTML → Markdown
+tokensaver clean page.html --stats
+tokensaver clean --url https://docs.anthropic.com/api
+
+# Xem báo cáo chi phí
+tokensaver report
+tokensaver report --last --days 7 --tag my-project
+tokensaver report --all --format csv --output report.csv
+
+# Xem trạng thái budget hôm nay
+tokensaver status
+```
+
+## Library Quick Start
+
+```python
+from tokensaver import TokenCounter, BudgetGuard, PromptCompressor, HTMLCleaner, SessionLogger
+
+# 1. Đếm token
+counter = TokenCounter(provider="anthropic", model="claude-sonnet-4-5")
+result = counter.count("Your prompt here...")
+print(f"Tokens: {result.tokens}, Cost: ${result.cost_usd:.6f}")
+
+# 2. Quản lý budget
+guard = BudgetGuard(session_limit_usd=1.0, warn_at_percent=0.8)
+guard.record(input_tokens=1200, output_tokens=350,
+             provider="anthropic", model="claude-sonnet-4-5")
+
+# 3. Nén prompt
+compressor = PromptCompressor(mode="simple")
+compressed = compressor.compress(long_prompt)
+print(compressed.summary())  # "[simple] 2,500 → 1,800 tokens (saved 700 = 28.0%)"
+
+# 4. Làm sạch HTML
+cleaner = HTMLCleaner()
+markdown = cleaner.clean_url("https://docs.example.com/api")
+
+# 5. Log usage
+logger = SessionLogger(tag="my-project")
+logger.log(provider="anthropic", model="claude-sonnet-4-5",
+           input_tokens=1200, output_tokens=350, cost_usd=0.00889)
+```
+
+## Mô-đun
+
+| Module | Chức năng |
+|--------|-----------|
+| `counter.py` | Đếm token chính xác (tiktoken + Gemini estimate) |
+| `budget.py` | Cảnh báo & block khi vượt budget |
+| `compressor.py` | Nén prompt (simple rules + LLMLingua) |
+| `cleaner.py` | HTML → Markdown (giảm 70–90% token) |
+| `logger.py` | Lưu log JSONL vào `~/.tokensaver/logs/` |
+| `reporter.py` | Báo cáo chi phí + export CSV |
+| `pricing.py` | Bảng giá provider (có thể cập nhật) |
+
+## Cập nhật Bảng Giá
+
+Sửa file [`tokensaver/pricing.yaml`](tokensaver/pricing.yaml) khi provider thay đổi giá:
+
+```yaml
+providers:
+  anthropic:
+    claude-sonnet-4-5:
+      input_per_1m: 3.00
+      output_per_1m: 15.00
+```
+
+## Mở rộng lên BigTool (v2)
+
+Kiến trúc đã sẵn sàng cho các module tương lai:
+
+- `semantic_cache.py` — Cache kết quả theo semantic similarity
+- `model_router.py` — Tự động chọn model nhỏ/lớn theo độ phức tạp
+- `rag_pipeline.py` — Vector DB thay thế full-context
+- `proxy_server.py` — FastAPI proxy giữa code và AI API
+
+## License
+
+MIT

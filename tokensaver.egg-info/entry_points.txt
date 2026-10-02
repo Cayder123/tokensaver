@@ -1,0 +1,2 @@
+[console_scripts]
+tokensaver = tokensaver.cli.main:cli
